@@ -4,12 +4,6 @@ I built CircuLib to handle library catalog and borrowing workflows across three 
 
 [Open the demo](https://library-management-system-rbac.vercel.app/)
 
-## App capture
-
-![CircuLib admin dashboard with library totals and loan activity](docs/images/admin_dashboard.png)
-
-I captured this from the live demo. The numbers are sample library data, not usage claims.
-
 ## What it does
 
 - **Admin:** manage books, physical copies, librarian accounts, and membership types; view library totals and reports.
