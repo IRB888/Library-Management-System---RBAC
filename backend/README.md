@@ -1,409 +1,92 @@
-# CircuLib - Backend API
+# CircuLib API
 
-Complete Node.js/Express REST API backend for CircuLib, a role-based library circulation and operations platform.
+I built this Express API for CircuLib's admin, librarian, and student pages. It uses PostgreSQL queries and SQL routines for catalog, membership, circulation, fees, and reporting.
 
-## 🚀 Features
+## Setup
 
-- **JWT Authentication**: Token-based user authentication with configurable expiry
-- **Role-Based Access Control**: Admin, Librarian, and Student roles with granular permissions
-- **PostgreSQL Integration**: Complete database integration with stored procedures
-- **RESTful API**: Clean, well-organized API endpoints
-- **Error Handling**: Comprehensive error handling and validation
-- **Security**: JWT tokens, password hashing, CORS, Helmet security headers
-- **Testing**: Unit tests and E2E tests with Playwright
-- **Code Quality**: ESLint configuration for code consistency
+Use Node.js 20+ and a TLS-enabled PostgreSQL database. Follow the [root setup guide](../README.md#database-setup) to create the database schema first.
 
-## 📁 Project Structure
-
-```
-src/
-├── config/
-│   ├── db.js                  # PostgreSQL connection pool
-│   └── env.js                 # Environment variable configuration
-│
-├── controllers/               # Request handlers
-│   ├── authController.js      # Login & registration
-│   ├── adminController.js     # Admin operations
-│   ├── librarianController.js # Librarian operations
-│   ├── studentController.js   # Student operations
-│   ├── circulationController.js # Checkout/return operations
-│   ├── reportsController.js   # Analytics & reporting
-│   └── globalSearchController.js # Search functionality
-│
-├── middleware/                # Express middleware
-│   ├── auth.js                # JWT verification
-│   └── requireRole.js         # Role-based authorization
-│
-├── routes/                    # API route definitions
-│   ├── auth.routes.js         # Auth endpoints
-│   ├── admin.routes.js        # Admin endpoints
-│   ├── librarian.routes.js    # Librarian endpoints
-│   ├── student.routes.js      # Student endpoints
-│   ├── circulation.routes.js  # Circulation endpoints
-│   ├── reports.routes.js      # Reports endpoints
-│   └── search.routes.js       # Search endpoints
-│
-├── services/                  # Business logic
-│   └── globalSearch.service.js # Search service
-│
-├── utils/                     # Utility functions
-│   ├── error.js               # Error handling
-│   └── response.js            # Response formatting
-│
-├── app.js                     # Express app configuration
-└── server.js                  # Server entry point
-
-tests/
-├── e2e/                       # End-to-end tests
-├── auth.json                  # Test authentication state
-
-.env.example                   # Environment template
-package.json                   # Dependencies & scripts
+```bash
+cd backend
+npm ci
+cp .env.example .env
 ```
 
-## 🛠️ Installation & Setup
+Set `DATABASE_URL` to your own PostgreSQL connection string and `JWT_SECRET` to your own long random secret. Don't use the example connection string or seeded passwords for a public deployment.
 
-### Prerequisites
-
-- **Node.js** 14+ and npm
-- **PostgreSQL** 12+ (with schema initialized)
-- **.env file** configured with database credentials
-
-### Installation Steps
-
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-2. **Create `.env` file:**
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Configure environment variables:**
-   ```env
-   PORT=5000
-   NODE_ENV=development
-   
-   JWT_SECRET=your-super-secret-jwt-key-here
-   JWT_EXPIRY=24h
-   
-   DB_HOST=localhost
-   DB_PORT=5432
-   DB_NAME=library_db
-   DB_USER=postgres
-   DB_PASSWORD=your_postgres_password
-   DB_SCHEMA=library_app
-   ```
-
-4. **Start the server:**
-   ```bash
-   npm run dev
-   ```
-   Server runs on `http://localhost:5000`
-
-## 📖 API Endpoints
-
-### Authentication Routes (`/api/auth`)
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|----------------|
-| POST | `/login` | User login | No |
-| POST | `/register` | User registration | No |
-
-**Login Request:**
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
+```dotenv
+PORT=5000
+NODE_ENV=development
+DATABASE_URL=your_postgresql_connection_string
+DB_SCHEMA=library_app
+JWT_SECRET=your_own_long_random_secret
+JWT_EXPIRY=24h
 ```
 
-**Login Response:**
+The [environment config](src/config/env.js) requires `DATABASE_URL`. It does not read the older `DB_HOST`, `DB_NAME`, or `DB_PASSWORD` settings. The [pool](src/config/db.js) uses TLS with certificate verification disabled; local PostgreSQL without TLS needs a deliberate pool configuration change.
+
+```bash
+npm run dev
+```
+
+The server listens on `http://localhost:5000` by default. `npm start` runs the same server without Nodemon. Optional pool and retry settings are listed in [.env.example](.env.example).
+
+## Routes
+
+| Group | Purpose |
+| --- | --- |
+| `/api/auth` | Login, student registration, current user, profile, password |
+| `/api/admin` | Accounts, books, copies, membership types, admin overrides |
+| `/api/librarian` | Student lookup, catalog, barcodes, alerts, reservations |
+| `/api/student` | Personal loans, fees, payments, alerts, catalog |
+| `/api/circulation` | Checkout, issue, return, loan and copy history |
+| `/api/reports` | Library totals, overdue, circulation, inventory, balances |
+| `/api/search` | Role-filtered search |
+| `/api/features` | Reviews, wishlist, reservations, announcements |
+
+[Route files](src/routes) show the exact methods and role checks. [Controllers](src/controllers) contain the queries. Roles and ownership rules are endpoint-specific; an authenticated token alone does not mean every action is allowed.
+
+`GET /api/health` returns process status. It does not check the database connection.
+
+## Authentication and responses
+
+Protected requests use `Authorization: Bearer <token>`. Password hashes are created and checked with PostgreSQL `pgcrypto` functions, not a Node bcrypt dependency.
+
+A successful login returns this envelope:
+
 ```json
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "name": "John Doe",
-    "email": "user@example.com",
-    "role": "student"
+  "message": "Login successful",
+  "data": {
+    "token": "<token>",
+    "user": {
+      "user_id": 1,
+      "email": "student@example.com",
+      "role": "student",
+      "full_name": "Example Student",
+      "is_demo": false
+    }
   }
 }
 ```
 
-### Admin Routes (`/api/admin`)
+Errors use `success: false`, `message`, and `errors`. Database details stay out of the public error message.
 
-Full system management and oversight:
-- User management
-- System analytics and reports
-- Configuration management
-- Member and inventory oversight
+## Database code
 
-**Requires**: Admin role
+The data layer is [SQL schema and routines](../db), plus controller queries. There is no separate ORM model layer. The main routines include `sp_checkout_book`, `sp_return_book`, `sp_generate_overdue_alerts`, and `sp_apply_fee_payment`.
 
-### Librarian Routes (`/api/librarian`)
+Use `db/schema/02_users_and_auth.sql` as the canonical credential-verification definition. The legacy standalone file only documents that choice. Reviews, wishlist, reservations, and announcements use `db/schema/03_modern_features.sql`.
 
-Daily operational management:
-- Inventory management
-- Circulation operations
-- Member management
-- Overdue tracking
+Fees and payment history are accounting records, not an online payment gateway. Overdue generation is currently a librarian action. Use an isolated database for a public demo: demo profile/password checks are implemented, while wider write restrictions are a next step.
 
-**Requires**: Librarian role
-
-### Student Routes (`/api/student`)
-
-Self-service operations:
-- My borrowing history
-- Available books search
-- Account settings
-- Book renewals
-
-**Requires**: Student role (authenticated)
-
-### Circulation Routes (`/api/circulation`)
-
-Checkout and return operations:
-- Checkout books
-- Return books
-- Manage renewals
-- Track overdue items
-
-**Requires**: Authenticated user
-
-### Reports Routes (`/api/reports`)
-
-Analytics and reporting:
-- Inventory reports
-- Member statistics
-- Overdue analysis
-- Performance metrics
-
-**Requires**: Librarian or Admin role
-
-### Search Routes (`/api/search`)
-
-Global book search:
-- Full-text search
-- Advanced filtering
-- Availability checking
-
-**Requires**: Authenticated user
-
-## 🔐 Authentication & Authorization
-
-### JWT Token Flow
-
-1. User submits credentials to `/api/auth/login`
-2. Server validates and generates JWT token
-3. Client includes token in `Authorization: Bearer <token>` header
-4. Server verifies token on protected routes
-5. Token expires after configured duration (default: 24h)
-
-### Role-Based Access Control
-
-Three user roles with different permissions:
-
-| Role | Permissions |
-|------|-------------|
-| **Admin** | Full system access, user management, analytics |
-| **Librarian** | Circulation operations, inventory management |
-| **Student** | Self-service borrowing, account management |
-
-### Protected Route Example
-
-```javascript
-router.get(
-  '/admin/users',
-  authenticate,        // Verify JWT token
-  requireRole('admin') // Verify admin role
-);
-```
-
-## 🗄️ Database Integration
-
-### Connection Configuration
-
-Database connection is configured in `src/config/db.js` using pg library connection pool:
-
-```javascript
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
-```
-
-### Stored Procedures Used
-
-- `checkout_and_return` - Manage book checkouts and returns
-- `overdue_and_fees` - Calculate overdue fines
-- `verify_user_credentials` - Authenticate users
-
-### Database Views
-
-- `analytics_views` - Performance and usage analytics
-- `vw_overdue_loans` - Overdue items tracking
-
-## 🧪 Testing
-
-### Unit & Integration Tests
-
-```bash
-npm test
-```
-
-Runs Jest test suite with coverage reporting.
-
-### E2E Tests
-
-```bash
-npm run test:e2e
-```
-
-Runs Playwright browser automation tests against the running server.
-
-### Code Quality
+## Checks and next steps
 
 ```bash
 npm run lint
 ```
 
-Validates code against ESLint rules.
+Jest scripts and Playwright configuration are present, but the backend does not yet include its unit or end-to-end test files. My next testing work is database-backed coverage for auth, circulation, role boundaries, and failure paths. Frontend retry tests are documented in the [root README](../README.md#checks).
 
-## 🚀 Development Commands
-
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start server with hot-reload (nodemon) |
-| `npm start` | Start production server |
-| `npm test` | Run test suite with coverage |
-| `npm run test:e2e` | Run E2E tests |
-| `npm run lint` | Check code quality |
-
-## 🔒 Security Features
-
-### Implementation
-
-✅ **JWT Authentication**: Secure token-based authentication  
-✅ **Password Hashing**: bcrypt for password security  
-✅ **Role-Based Middleware**: Granular access control  
-✅ **Input Validation**: Request validation and sanitization  
-✅ **CORS Protection**: Cross-origin request control  
-✅ **Helmet Headers**: Security headers via Helmet  
-✅ **SQL Injection Prevention**: Parameterized queries  
-
-### Best Practices
-
-- Never commit `.env` file with secrets
-- Use strong JWT_SECRET in production (min 32 chars)
-- Validate and sanitize all user inputs
-- Use HTTPS in production
-- Implement rate limiting for auth endpoints
-- Regularly update dependencies
-
-## 📋 Environment Variables
-
-| Variable | Example | Description |
-|----------|---------|-------------|
-| PORT | 5000 | Server port |
-| NODE_ENV | development | Environment (development/production) |
-| JWT_SECRET | abc123xyz... | Secret key for JWT signing (keep secure!) |
-| JWT_EXPIRY | 24h | Token expiration duration |
-| DB_HOST | localhost | Database hostname |
-| DB_PORT | 5432 | Database port |
-| DB_NAME | library_db | Database name |
-| DB_USER | postgres | Database username |
-| DB_PASSWORD | password | Database password |
-| DB_SCHEMA | library_app | Database schema name |
-
-## 🛠️ Technology Stack
-
-| Technology | Purpose |
-|-----------|---------|
-| **Express.js** | Web framework |
-| **PostgreSQL** | Database |
-| **jsonwebtoken** | JWT authentication |
-| **bcrypt** | Password hashing |
-| **pg** | PostgreSQL client |
-| **Helmet** | Security headers |
-| **CORS** | Cross-origin support |
-| **Jest** | Testing framework |
-| **Playwright** | E2E testing |
-| **ESLint** | Code quality |
-| **nodemon** | Development auto-reload |
-
-## 🐛 Troubleshooting
-
-### Database Connection Error
-
-```
-Error: connect ECONNREFUSED 127.0.0.1:5432
-```
-
-**Solutions:**
-- Verify PostgreSQL is running
-- Check DB_HOST and DB_PORT in .env
-- Ensure database exists: `psql -l | grep library_db`
-- Verify credentials are correct
-
-### Port Already in Use
-
-```
-Error: listen EADDRINUSE: address already in use :::5000
-```
-
-**Solutions:**
-- Kill process on port 5000:
-  ```bash
-  # macOS/Linux
-  lsof -i :5000 | grep LISTEN | awk '{print $2}' | xargs kill -9
-  
-  # Windows
-  netstat -ano | findstr :5000
-  taskkill /PID <PID> /F
-  ```
-- Or change PORT in .env
-
-### JWT Token Invalid
-
-```
-Error: jwt malformed
-```
-
-**Solutions:**
-- Ensure token is sent in Authorization header: `Bearer <token>`
-- Check JWT_SECRET matches between login and verification
-- Verify token hasn't expired
-
-### Database Schema Missing
-
-```
-Error: relation "users" does not exist
-```
-
-**Solutions:**
-- Run database initialization scripts from `db/schema/`
-- Verify `DB_SCHEMA=library_app` in .env
-- Check database user has permissions
-
-## 📞 Support & Documentation
-
-- **Backend Tests**: Check `tests/` directory for examples
-- **Database Schema**: See `../db/schema/` for table definitions
-- **Stored Procedures**: See `../db/procedures/` for complex operations
-- **Main README**: See `../README.md` for full project documentation
-
-## 📄 License
-
-This project is proprietary software for library management systems.
-
----
-
-**Version**: 1.0.0  
-**Last Updated**: December 2024
+For production, use your own credentials, review the TLS configuration, and replace bootstrap account passwords. My next security work includes broader demo write restrictions and stricter auth configuration.
