@@ -4,12 +4,13 @@
 --   can perform efficient fuzzy matching using pg_trgm.
 --
 -- Requirements:
---   - pg_trgm extension must be enabled (see 04_enable_pg_trgm.sql)
+--   - The database role must be allowed to enable pg_trgm.
 --
 -- Safe to run multiple times (idempotent).
 -- =====================================================================
 
-SET search_path TO library_app;
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
+SET search_path TO library_app, public;
 
 -- ---------------------------------------------------------
 -- CLEANUP: Remove incorrect index that caused catalog crash
