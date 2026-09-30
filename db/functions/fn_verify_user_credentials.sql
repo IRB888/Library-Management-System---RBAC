@@ -1,34 +1,10 @@
--- ===================================================================
--- Function: fn_verify_user_credentials
--- Purpose : Validate user login and return user information.
--- Schema  : library_app
--- ===================================================================
-
-CREATE OR REPLACE FUNCTION library_app.fn_verify_user_credentials(
-    p_email VARCHAR,
-    p_password_plain VARCHAR
-)
-RETURNS TABLE (
-    user_id INT,
-    email VARCHAR,
-    full_name VARCHAR,
-    role VARCHAR,
-    is_active BOOLEAN
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        u.user_id,
-        u.email,
-        u.full_name,
-        u.role,
-        u.is_active
-    FROM library_app.users u
-    WHERE LOWER(u.email) = LOWER(p_email)
-      AND u.password_hash = crypt(p_password_plain, u.password_hash)
-      AND u.is_active = TRUE
-    LIMIT 1;
-END;
-$$;
+-- Credential verification is defined in db/schema/02_users_and_auth.sql.
+-- Apply that script after the core schema; there is no second function here.
+-- The previous standalone definition had the same input signature but a
+-- different return type, so applying both definitions was not a valid setup.
+--
+-- Existing databases: compare the installed function with the canonical
+-- definition before migrating. PostgreSQL cannot change its return type with
+-- CREATE OR REPLACE. Any required drop/recreate must be planned with its
+-- dependencies, permissions, and application downtime in mind.
+-- Do not drop the deployed function just to rerun bootstrap scripts.
