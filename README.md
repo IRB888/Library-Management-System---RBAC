@@ -1,5 +1,12 @@
 # CircuLib
 
+![React](https://img.shields.io/badge/React-18-149ECA?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-database-4169E1?logo=postgresql&logoColor=white)
+![Material UI](https://img.shields.io/badge/Material_UI-5-007FFF?logo=mui&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
+
 I built CircuLib to handle library catalog and borrowing workflows across three roles: admin, librarian, and student. It has a React frontend, an Express API, and a PostgreSQL database. The borrowing rules, loans, fees, and reports use database records and SQL routines.
 
 [Open the demo](https://library-management-system-rbac.vercel.app/)
@@ -134,7 +141,39 @@ npm run build
 node --test tests/retry.test.js
 ```
 
-The retry tests cover transient errors, retry limits, authentication errors, cancellation, and avoiding automatic retries on other writes. The backend also has Jest and Playwright configuration; database-backed integration coverage is a next step.
+The retry tests cover transient errors, retry limits, authentication errors, cancellation, and avoiding automatic retries on other writes. The backend lists Jest and Playwright scripts and includes Playwright configuration; database-backed integration coverage is a next step.
+
+## Contributing
+
+I welcome focused fixes to the library workflows and setup. There is useful work in the React UI, Express controllers and PostgreSQL routines. You do not need to understand the whole app to take a small issue.
+
+### Pick a change
+
+- Check the open issues and existing pull requests before starting. If you want to take an issue, leave a short comment with your approach and wait for a reply so we do not duplicate work.
+- Start with issues labelled `good first issue` for a small, isolated change. `difficulty: medium` issues need more familiarity with the workflow and tests.
+- Keep one issue per PR. A bug fix should not include unrelated formatting, redesigns or dependency updates.
+- If you find a new bug, include your role, expected result, actual result, reproduction steps and relevant error output. Remove tokens, connection strings and personal data from logs.
+
+### Make and check the change
+
+Fork the repository, create a branch and follow the local setup above. Use a separate database with test data. The shared demo is not a test environment for writes, loans, fees or account changes.
+
+For a fix, show how you reproduced the problem and how you checked the result. Add a focused regression test where practical. For UI changes, include actual before/after screenshots and check a narrow mobile screen as well as desktop. For SQL changes, include an isolated database test and explain any migration or rollback needs.
+
+The frontend build and retry tests above are available checks. The backend exposes `npm run lint`, `npm test` and `npm run test:e2e`, but the current tree does not contain a complete backend test suite. Run checks relevant to your change and report the real result; do not mark a check passed if it was unavailable or stopped on an existing failure. New focused tests are welcome.
+
+In the PR description, include:
+
+1. The issue and behavior being changed.
+2. The smallest change that fixes it.
+3. The commands, screenshots or database cases used to verify it.
+4. Any remaining limitation or check you could not run.
+
+If you can no longer work on a claimed issue, leave a short update so someone else can take it. Do not post exploit details or credentials in a public issue. For a security concern, ask for a private reporting route without including sensitive details.
+
+## License
+
+I am releasing CircuLib under the [MIT License](LICENSE).
 
 ## Next steps
 
