@@ -45,6 +45,7 @@ const searchAll = async (q, opts = {}) => {
   params: [term, limit, offset],
   key: 'authors',
 };
+  queries.push(authorsQuery);
 
 
   // Librarians and above get copies, members, loans; admin additionally gets users
